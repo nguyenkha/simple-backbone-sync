@@ -38,8 +38,7 @@ class Sync extends backbone.Model
         try 
           args.push callback
           # Async
-          # TODO: Review prototype
-          clazz.prototype[method].apply obj, args
+          obj[method].apply obj, args
         catch e
           # Callback on exception
           callback e.toString()
@@ -149,7 +148,9 @@ class Sync extends backbone.Model
     @socket.emit.apply @socket, arguments
 
   # What happen when new node join?
-
+  # Get state
+  #   - All handle and type
+  #   - For each handle generate link
 
   # Free? singleton?
   free: ->
