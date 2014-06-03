@@ -1,0 +1,14 @@
+{
+  "name": "simple-backbone-sync",
+  "description": "Simple sync and RPC for backbone",
+  "version": "0.1.0",
+  "author": {
+    "name": "Kha N. Do",
+    "email": "donguyenkha@gmail.com"
+  },
+  "dependencies": {
+    "async": "~0.9.0",
+    "underscore": "~1.6.0",
+    "backbone": "~1.1.2"
+  }
+}
