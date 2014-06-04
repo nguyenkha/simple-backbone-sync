@@ -34,8 +34,8 @@ class Sync extends backbone.Model
       'backbone.Model': backbone.Model
       'backbone.Collection': backbone.Collection
 
-  addNameToType: (name, type) ->
-    @nameToType[name] = type
+  addType: (type) ->
+    @nameToType[type.className] = type
 
   getType: (name) ->
     if @nameToType[name]

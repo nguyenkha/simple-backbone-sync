@@ -8,6 +8,8 @@ Sync = client.Sync
 
 describe '#ClientHandle', ->
   class Calculator extends backbone.Model
+    @className: 'Calculator'
+
     plus: (a, b, callback) ->
       @handle.invoke 'plus', a, b, callback
 
@@ -15,7 +17,7 @@ describe '#ClientHandle', ->
     it 'should send method to server', (done) ->
       io = _.extend {}, backbone.Events
       s = new Sync io
-      s.addNameToType 'Calculator', Calculator
+      s.addType Calculator
       io.trigger 'register', 'c1', 'Calculator'
       m1 = s.getObjectByHandleId('c1')
       io.on 'invoke', (handleId, method, args, callback) -> 
@@ -43,9 +45,10 @@ describe 'ClientSync', ->
 
   describe '#addType', ->
     class DebugElement extends backbone.Model
+      @className: 'DebugElement'
 
     it 'should create exactly type', ->
-      s.addNameToType 'DebugElement', DebugElement
+      s.addType DebugElement
       io.trigger 'register', 'c1', 'DebugElement'
       s.getObjectByHandleId('c1').should.be.instanceOf DebugElement
 

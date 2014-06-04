@@ -11,10 +11,10 @@ describe 'ClientHandle-ServerHandle integration', ->
   c = c1 = io = m1 = s = null
 
   class ClientCalculator extends backbone.Model
+    @className: 'Calculator'
+
     plus: (a, b, callback) ->
       @handle.invoke 'plus', a, b, callback
-
-
 
   class ServerCalculator extends backbone.Model
     plus: (a, b, callback) ->
@@ -41,7 +41,7 @@ describe 'ClientHandle-ServerHandle integration', ->
   describe '#invoke', ->
 
     it 'should call remote server method', (done) ->
-      c.addNameToType 'Calculator', ClientCalculator
+      c.addType ClientCalculator
       s.addType ServerCalculatorHandle
       s.register m1
       clientC1 = c.getObjectByHandleId m1.handle.id
