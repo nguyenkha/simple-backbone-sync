@@ -5,21 +5,91 @@ backbone = require 'backbone'
 # Maybe extend for other collaborative activity
 # Store all sync object, key by it cid? (depend on backbone model)
 # Object on server has it own id and cid?
-# All object are created ONLY on server!!!
+# All object are created ONLY on server!!! => Master-Slave
 # Determine object by path? REST inspire
 
 # Object handle
 class Handle
   constructor: (@id, @sync, @obj) ->
     @obj.handle = this
+    # Invoke
+
+  register: ->
+    # Do nothing
+
+  free: ->
+    # Free handle link
+    delete @obj.handle
+    # Off all events
+    @obj.off null, null, this
+
+
+class ModelHandle extends Handle
+  @clazz: backbone.Model
+  
+  @className: 'backbone.Model'
+
+  constructor: (id, sync, obj) ->
+    super id, sync, obj
+
+  register: ->
+    @obj.on 'change', ->
+      @linkAttributes @obj.changed
+    , this
+    @linkAttributes @obj.attributes
+
+  linkAttributes: (attrs) ->
+    links = {}
+    for name, attr of attrs
+      attrHandle = @sync.register attr
+      if attrHandle instanceof Handle
+        links[name] = 
+          handle: attrHandle.id
+      else  
+        links[name] = 
+          content: attrHandle
+    @sync.broadcast 'model:set', @id, links
+
+class CollectionHandle extends Handle
+  @clazz: backbone.Collection
+  
+  @className: 'backbone.Collection'
+
+  constructor: (id, sync, obj) ->
+    super id, sync, obj
+
+  register: ->
+    @obj.on 'add', (el) ->
+      # Simply add link
+      @linkCollection [el], false
+    , this
+
+    @obj.on 'remove', (el) ->
+      @sync.broadcast 'collection:remove', @id, el.handle.id
+    , this
+
+    @obj.on 'reset', ->
+      @linkCollection @obj.models, true
+    , this
+
+    @linkCollection @obj.models
+
+  linkCollection: (els, isReset) ->
+    links = []
+    for e in els
+      childHandle = @sync.register e
+      links.push childHandle.id
+    if isReset
+      @sync.broadcast 'collection:reset', @id, links
+    else
+      @sync.broadcast 'collection:add', @id, links
 
 class Sync extends backbone.Model
   constructor: (@channel) ->
     super()
     # Handle to all managed objects
     @handles = {}
-    @acceptMethods = {}
-    @typeToName = {}
+    @types = []
     @channel.on 'invoke', @onInvoke
 
   # TODO: Becareful remote call harmful
@@ -29,8 +99,7 @@ class Sync extends backbone.Model
       callback 'Object not found'
     else
       obj = handle.obj
-      clazz = obj.constructor
-      type = @typeToName[clazz]
+      type = @getType obj
       # Accept only async methods
       if type and type.methods and type.methods.indexOf(method) != -1
         try 
@@ -45,99 +114,48 @@ class Sync extends backbone.Model
         # Not throw real error
         callback 'Method not found'
 
-  addTypeToName: (type, name, methods) ->
-    @typeToName[type] = 
-      name: name
-      methods: methods
+  getType: (obj) -> 
+    type = _.find @types, (el) -> 
+      el.clazz is obj.constructor
+    # Fallback backbone base
+    if not type
+      if obj instanceof ModelHandle.clazz
+        type = ModelHandle
+      else if obj instanceof CollectionHandle.clazz
+        type = CollectionHandle
+    return type
 
-  # TODO: Add ad-hoc type
-  getTypeName: (obj) ->
-    # Try to get real type of object
-    if @typeToName[obj.constructor]
-      return @typeToName[obj.constructor].name
-    if obj instanceof backbone.Model
-      return 'backbone.Model'
-    else if obj instanceof backbone.Collection
-      return 'backbone.Collection'
-    return null
+  addType: (type) ->
+    @types.push type
 
   isRegistered: (obj) ->
     return obj.handle and obj.handle.id and @handles[obj.handle.id]
-
-  linkAttributes: (handle, attrs) ->
-    links = {}
-    for name, attr of attrs
-      attrHandle = @register attr
-      if attrHandle instanceof Handle
-        links[name] = 
-          handle: attrHandle.id
-      else  
-        links[name] = 
-          content: attrHandle
-    @broadcast 'model:set', handle.id, links
-
-  linkCollection: (handle, els, isReset) ->
-    links = []
-    for e in els
-      childHandle = @register e
-      links.push childHandle.id
-    if isReset
-      @broadcast 'collection:reset', handle.id, links
-    else
-      @broadcast 'collection:add', handle.id, links
     
   # Add new tracking object
   # Each type should have ad-hoc factory
   register: (obj) ->
     # If object not a backbone object simply put it out
     # Root objects need to be a backbone to keep data sync
-    type = @getTypeName obj
-    # Primitive
-    if type is null
+    type = @getType obj
+    # Primitive, just return as it is
+    if not type
       return obj
 
     # Already register
     if @isRegistered obj
       return obj.handle
-    
+
     # From here: only managed register type
     # Create new handle
     # TODO: Becareful overflow id
-    handle = new Handle _.uniqueId('sync'), this, obj
+    handle = new type _.uniqueId('sync'), this, obj
     # Add handle to tracking
     @handles[handle.id] = handle
     # Broadcast
-    @broadcast 'register', handle.id, type
-      
-    # Model
-    if obj instanceof backbone.Model
-      # Recursively and link
-      obj.on 'change', ->
-        # Re-link
-        @linkAttributes handle, obj.changed
-      , this
-      # Link
-      @linkAttributes handle, obj.toJSON()
+    @broadcast 'register', handle.id, type.className
 
-    # Collection
-    else if obj instanceof backbone.Collection
-      # Bind event
-      obj.on 'add', (el) ->
-        # Simply add link
-        @linkCollection handle, [el], false
-      , this
-
-      obj.on 'remove', (el) ->
-        @broadcast 'collection:remove', handle.id, el.handle.id
-      , this
-
-      obj.on 'reset', ->
-        @linkCollection handle, obj.models, true
-      , this
-
-      @linkCollection handle, obj.models
-
-      # TODO: Unbind event???
+    # Self register
+    handle.register()
       
     return handle
 
@@ -155,12 +173,10 @@ class Sync extends backbone.Model
     # Fire event?
     # Clear all handles event
     for id, handle of @handles
-      obj = handle.obj
-      delete obj.handle
-      # Off all events
-      obj.off null, null, this
+      handle.free()
     # Free all handle
     @handles = null
-    @channel.on 'invoke', @onInvoke
+    @channel.off 'invoke', @onInvoke
 
 exports.Sync = Sync
+exports.Handle = Handle

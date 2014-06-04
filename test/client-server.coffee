@@ -5,6 +5,7 @@ client = require '../client'
 server = require '../server'
 ClientSync = client.Sync
 ServerSync = server.Sync
+Handle = server.Handle
 
 describe 'ClientHandle-ServerHandle integration', ->
   c = c1 = io = m1 = s = null
@@ -13,9 +14,21 @@ describe 'ClientHandle-ServerHandle integration', ->
     plus: (a, b, callback) ->
       @handle.invoke 'plus', a, b, callback
 
+
+
   class ServerCalculator extends backbone.Model
     plus: (a, b, callback) ->
       callback null, a + b
+
+  class ServerCalculatorHandle extends Handle
+    @clazz: ServerCalculator
+  
+    @className: 'Calculator'
+
+    @methods: [ 'plus' ]
+
+    constructor: (id, sync, obj) ->
+      super id, sync, obj
 
   beforeEach (done) ->
     # Create new pool
@@ -29,7 +42,7 @@ describe 'ClientHandle-ServerHandle integration', ->
 
     it 'should call remote server method', (done) ->
       c.addNameToType 'Calculator', ClientCalculator
-      s.addTypeToName ServerCalculator, 'Calculator', [ 'plus' ]
+      s.addType ServerCalculatorHandle
       s.register m1
       clientC1 = c.getObjectByHandleId m1.handle.id
       clientC1.plus 1, 2, (err, result) ->

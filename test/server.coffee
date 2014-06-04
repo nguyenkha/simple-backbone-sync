@@ -3,6 +3,7 @@ _ = require 'underscore'
 backbone = require 'backbone'
 server = require '../server'
 Sync = server.Sync
+Handle = server.Handle
 
 describe 'ServerHandle', ->
   io = m1 = s = null
@@ -14,6 +15,16 @@ describe 'ServerHandle', ->
     mul: (a, b, callback) ->
       callback Error('Error')
 
+  class CalculatorHandle extends Handle
+    @clazz: Calculator
+  
+    @className: 'Calculator'
+
+    @methods: [ 'plus' ]
+
+    constructor: (id, sync, obj) ->
+      super id, sync, obj
+
   beforeEach (done) ->
     # Create new pool
     io = _.extend {}, backbone.Events
@@ -23,7 +34,7 @@ describe 'ServerHandle', ->
   
   describe '#invoke', ->
     it 'should process remote call (accept method)', (done) ->
-      s.addTypeToName Calculator, 'Calculator', [ 'plus' ]
+      s.addType CalculatorHandle
       s.register m1
       cb1 = (err, result) ->
         if err
@@ -78,22 +89,30 @@ describe 'ServerSync', ->
 
   describe '#addType', ->
     # Simple class to test
-    class DebugElement extends backbone.Model
+    class DebugElement
 
-    class Thread extends DebugElement
+    class DebugElementHandle extends Handle
+      @clazz: DebugElement
+
+      @className: 'DebugElement'
+
+      constructor: (id, sync, obj) ->
+        super id, sync, obj
+
+    class Thread extends backbone.Model
 
     class ThreadList extends backbone.Collection
 
     it 'should return real type if it had add', ->
-      s.addTypeToName DebugElement, 'DebugElement'
+      s.addType DebugElementHandle
       obj = new DebugElement()
-      s.getTypeName(obj).should.equal 'DebugElement'
+      s.getType(obj).className.should.equal 'DebugElement'
 
     it 'should return base type if not', ->
       obj = new Thread()
-      s.getTypeName(obj).should.equal 'backbone.Model'
+      s.getType(obj).className.should.equal 'backbone.Model'
       obj = new ThreadList()
-      s.getTypeName(obj).should.equal 'backbone.Collection'
+      s.getType(obj).className.should.equal 'backbone.Collection'
 
   describe '#register', ->
     it 'should register simple backbone model object', (done) ->
