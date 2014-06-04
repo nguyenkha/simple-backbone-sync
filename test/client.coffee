@@ -3,21 +3,30 @@ _ = require 'underscore'
 backbone = require 'backbone'
 client = require '../client'
 Sync = client.Sync
+Handle = client.Handle
 
 # Test should be concentrate on target
 
 describe '#ClientHandle', ->
   class Calculator extends backbone.Model
-    @className: 'Calculator'
-
     plus: (a, b, callback) ->
       @handle.invoke 'plus', a, b, callback
+
+  class CalculatorHandle extends Handle
+    @className: 'Calculator'
+
+    @clazz: Calculator
+
+    @bindEvents: (sync) ->
+
+    constructor: (id, sync, obj) ->
+      super id, sync, obj
 
   describe '#invoke', ->
     it 'should send method to server', (done) ->
       io = _.extend {}, backbone.Events
       s = new Sync io
-      s.addType Calculator
+      s.addType CalculatorHandle
       io.trigger 'register', 'c1', 'Calculator'
       m1 = s.getObjectByHandleId('c1')
       io.on 'invoke', (handleId, method, args, callback) -> 
@@ -45,10 +54,19 @@ describe 'ClientSync', ->
 
   describe '#addType', ->
     class DebugElement extends backbone.Model
+    
+    class DebugElementHandle extends Handle
       @className: 'DebugElement'
 
+      @clazz: DebugElement
+
+      @bindEvents: (sync) ->
+
+      constructor: (id, sync, obj) ->
+        super id, sync, obj
+
     it 'should create exactly type', ->
-      s.addType DebugElement
+      s.addType DebugElementHandle
       io.trigger 'register', 'c1', 'DebugElement'
       s.getObjectByHandleId('c1').should.be.instanceOf DebugElement
 
@@ -196,3 +214,23 @@ describe 'ClientSync', ->
         c1.at(0).should.equal m2
         done()
       io.trigger 'collection:reset', 'c3', [ 'c2'] 
+
+  describe '#loadState', ->
+    it 'should load the state object from server', ->
+      s.loadState [
+        { id: 'sync1', type: 'backbone.Model', state: { foo: { content: 1 }, m2: { handle: 'sync2' } } }
+        { id: 'sync2', type: 'backbone.Model', state: { bar: { content: 'Hello world' } } }
+        { id: 'sync3', type: 'backbone.Collection', state: [ 'sync1', 'sync2' ] }
+      ]
+      m1 = s.getObjectByHandleId('sync1')
+      m2 = s.getObjectByHandleId('sync2')
+      c1 = s.getObjectByHandleId('sync3')
+      m1.get('foo').should.equal 1
+      m1.get('m2').should.equal m2
+      m2.get('bar').should.equal 'Hello world'
+      c1.length.should.equal 2
+      c1.at(0).should.equal m1
+      c1.at(1).should.equal m2
+
+      
+

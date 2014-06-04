@@ -17,6 +17,9 @@ class Handle
   register: ->
     # Do nothing
 
+  getState: ->
+    # Do nothing
+
   free: ->
     # Free handle link
     delete @obj.handle
@@ -39,6 +42,11 @@ class ModelHandle extends Handle
     @linkAttributes @obj.attributes
 
   linkAttributes: (attrs) ->
+    @sync.broadcast 'model:set', @id, @getState(attrs)
+
+  getState: (attrs) ->
+    if not attrs
+      attrs = @obj.attributes
     links = {}
     for name, attr of attrs
       attrHandle = @sync.register attr
@@ -48,7 +56,7 @@ class ModelHandle extends Handle
       else  
         links[name] = 
           content: attrHandle
-    @sync.broadcast 'model:set', @id, links
+    return links
 
 class CollectionHandle extends Handle
   @clazz: backbone.Collection
@@ -75,14 +83,20 @@ class CollectionHandle extends Handle
     @linkCollection @obj.models
 
   linkCollection: (els, isReset) ->
-    links = []
-    for e in els
-      childHandle = @sync.register e
-      links.push childHandle.id
+    links = @getState els
     if isReset
       @sync.broadcast 'collection:reset', @id, links
     else
       @sync.broadcast 'collection:add', @id, links
+
+  getState: (els) ->
+    if not els
+      els = @obj.models
+    links = []
+    for e in els
+      childHandle = @sync.register e
+      links.push childHandle.id
+    return links
 
 class Sync extends backbone.Model
   constructor: (@channel) ->
@@ -167,6 +181,14 @@ class Sync extends backbone.Model
   # Get state
   #   - All handle and type
   #   - For each handle generate link
+  getState: ->
+    result = []
+    for key, handle of @handles
+      result.push
+        id: key
+        type: handle.constructor.className
+        state: handle.getState()
+    return result
 
   # Free? singleton?
   free: ->

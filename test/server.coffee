@@ -87,6 +87,22 @@ describe 'ServerSync', ->
 
     done()
 
+  describe '#getState', ->
+    it 'should get all handles and links', ->
+      s.register m2
+      s.register m3
+      s.register c1
+      state = s.getState()
+      handleM1 = _.find state, (handle) -> m1.handle.id is handle.id
+      handleM1.state.foo.content.should.equal 'Hello world'
+      handleM2 = _.find state, (handle) -> m2.handle.id is handle.id
+      handleM2.state.m1.handle.should.equal m1.handle.id
+      handleM3 = _.find state, (handle) -> m3.handle.id is handle.id
+      handleM3.id.should.equal m3.handle.id
+      handleC1 = _.find state, (handle) -> c1.handle.id is handle.id
+      handleC1.state.should.eql [ m1.handle.id, m3.handle.id ]
+
+
   describe '#addType', ->
     # Simple class to test
     class DebugElement

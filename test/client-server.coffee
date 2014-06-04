@@ -5,22 +5,31 @@ client = require '../client'
 server = require '../server'
 ClientSync = client.Sync
 ServerSync = server.Sync
-Handle = server.Handle
+ServerHandle = server.Handle
+ClientHandle = client.Handle
 
 describe 'ClientHandle-ServerHandle integration', ->
   c = c1 = io = m1 = s = null
 
   class ClientCalculator extends backbone.Model
-    @className: 'Calculator'
-
     plus: (a, b, callback) ->
       @handle.invoke 'plus', a, b, callback
+
+  class ClientCalculatorHandle extends ClientHandle
+    @className: 'Calculator'
+
+    @clazz: ClientCalculator
+
+    @bindEvents: (sync) ->
+
+    constructor: (id, sync, obj) ->
+      super id, sync, obj
 
   class ServerCalculator extends backbone.Model
     plus: (a, b, callback) ->
       callback null, a + b
 
-  class ServerCalculatorHandle extends Handle
+  class ServerCalculatorHandle extends ServerHandle
     @clazz: ServerCalculator
   
     @className: 'Calculator'
@@ -41,7 +50,7 @@ describe 'ClientHandle-ServerHandle integration', ->
   describe '#invoke', ->
 
     it 'should call remote server method', (done) ->
-      c.addType ClientCalculator
+      c.addType ClientCalculatorHandle
       s.addType ServerCalculatorHandle
       s.register m1
       clientC1 = c.getObjectByHandleId m1.handle.id
@@ -50,13 +59,15 @@ describe 'ClientHandle-ServerHandle integration', ->
         done err
 
 describe 'ClientSync-ServerSync integration', ->
-  c1 = io = m1 = m2 = m3 = c = s = null
+  cc = c1 = io = m1 = m2 = m3 = c = s = null
 
   beforeEach (done) ->
     # Create new pool
     io = _.extend {}, backbone.Events
+    io2 = _.extend {}, backbone.Events
     s = new ServerSync io
     c = new ClientSync io
+    cc = new ClientSync io2
     
     m1 = new backbone.Model
       foo: 'Hello world'
@@ -126,3 +137,14 @@ describe 'ClientSync-ServerSync integration', ->
         done()
       c1.reset [ m2 ]
 
+    it 'should load/get state', ->
+      s.register m1
+      s.register m2
+      s.register m3
+      s.register c1
+
+      state = s.getState()
+      cc.loadState state
+      # Some check...
+      cc.getObjectByHandleId(m1.handle.id).toJSON().should.eql c.getObjectByHandleId(m1.handle.id).toJSON()
+      cc.getObjectByHandleId(c1.handle.id).length.should.equal c.getObjectByHandleId(c1.handle.id).length
