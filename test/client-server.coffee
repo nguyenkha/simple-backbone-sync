@@ -1,6 +1,4 @@
 should = require 'should'
-events = require 'events'
-EventEmitter = events.EventEmitter
 _ = require 'underscore'
 backbone = require 'backbone'
 client = require '../client'
@@ -21,7 +19,7 @@ describe 'ClientHandle-ServerHandle integration', ->
 
   beforeEach (done) ->
     # Create new pool
-    io = new EventEmitter()
+    io = _.extend {}, backbone.Events
     s = new ServerSync io
     c = new ClientSync io    
     m1 = new ServerCalculator()
@@ -43,7 +41,7 @@ describe 'ClientSync-ServerSync integration', ->
 
   beforeEach (done) ->
     # Create new pool
-    io = new EventEmitter()
+    io = _.extend {}, backbone.Events
     s = new ServerSync io
     c = new ClientSync io
     

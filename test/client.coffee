@@ -1,6 +1,4 @@
 should = require 'should'
-events = require 'events'
-EventEmitter = events.EventEmitter
 _ = require 'underscore'
 backbone = require 'backbone'
 client = require '../client'
@@ -15,12 +13,12 @@ describe '#ClientHandle', ->
 
   describe '#invoke', ->
     it 'should send method to server', (done) ->
-      io = new EventEmitter()
+      io = _.extend {}, backbone.Events
       s = new Sync io
       s.addNameToType 'Calculator', Calculator
-      io.emit 's:register', 'c1', 'Calculator'
+      io.trigger 'register', 'c1', 'Calculator'
       m1 = s.getObjectByHandleId('c1')
-      io.on 's:invoke', (handleId, method, args, callback) -> 
+      io.on 'invoke', (handleId, method, args, callback) -> 
         handleId.should.equal 'c1'
         method.should.equal 'plus'
         args[0].should.equal 1
@@ -39,7 +37,7 @@ describe 'ClientSync', ->
 
   beforeEach (done) ->
     # Create new pool
-    io = new EventEmitter()
+    io = _.extend {}, backbone.Events
     s = new Sync io
     done()
 
@@ -48,25 +46,25 @@ describe 'ClientSync', ->
 
     it 'should create exactly type', ->
       s.addNameToType 'DebugElement', DebugElement
-      io.emit 's:register', 'c1', 'DebugElement'
+      io.trigger 'register', 'c1', 'DebugElement'
       s.getObjectByHandleId('c1').should.be.instanceOf DebugElement
 
     it 'should throw error unknown type', ->
       f = ->
-        io.emit 's:register', 'c1', 'Thread'
+        io.trigger 'register', 'c1', 'Thread'
       f.should.throw()
 
   describe '#onRegister', ->
     it 'should register new object', ->
-      io.emit 's:register', 'c1', 'backbone.Model'
+      io.trigger 'register', 'c1', 'backbone.Model'
       s.getObjectByHandleId('c1').should.be.instanceOf backbone.Model
-      io.emit 's:register', 'c2', 'backbone.Collection'
+      io.trigger 'register', 'c2', 'backbone.Collection'
       s.getObjectByHandleId('c2').should.be.instanceOf backbone.Collection
 
   describe '#onModelSet', ->
     it 'should set simple data on registered object', ->
-      io.emit 's:register', 'c1', 'backbone.Model'
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'register', 'c1', 'backbone.Model'
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Hello world'
         id:
@@ -76,14 +74,14 @@ describe 'ClientSync', ->
         id: 1
 
     it 'should set link on registered object', ->
-      io.emit 's:register', 'c2', 'backbone.Model'
-      io.emit 's:register', 'c1', 'backbone.Model'
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'register', 'c2', 'backbone.Model'
+      io.trigger 'register', 'c1', 'backbone.Model'
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Hello world'
         id:
           content: 1
-      io.emit 's:model:set', 'c2', 
+      io.trigger 'model:set', 'c2', 
         m1:
           handle: 'c1'
       m1 = s.getObjectByHandleId('c1') 
@@ -91,8 +89,8 @@ describe 'ClientSync', ->
       m2.get('m1').should.equal m1
 
     it 'should notify when object change', (done) ->
-      io.emit 's:register', 'c1', 'backbone.Model'
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'register', 'c1', 'backbone.Model'
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Hello world'
         id:
@@ -101,15 +99,15 @@ describe 'ClientSync', ->
       m1.on 'change', ->
         m1.get('foo').should.equal 'Kha 123'
         done()
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Kha 123'
 
   describe '#onCollectionAdd', ->
     it 'should notify when new model add to collection', (done) ->
-      io.emit 's:register', 'c3', 'backbone.Collection'
-      io.emit 's:register', 'c1', 'backbone.Model'
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'register', 'c3', 'backbone.Collection'
+      io.trigger 'register', 'c1', 'backbone.Model'
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Hello world'
         id:
@@ -121,18 +119,18 @@ describe 'ClientSync', ->
         model.should.equal m1
         done()
 
-      io.emit 's:collection:add', 'c3', [ 'c1' ]
+      io.trigger 'collection:add', 'c3', [ 'c1' ]
 
     it 'should notify when list of new models add to collection', (done) ->
-      io.emit 's:register', 'c3', 'backbone.Collection'
-      io.emit 's:register', 'c2', 'backbone.Model'
-      io.emit 's:register', 'c1', 'backbone.Model'
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'register', 'c3', 'backbone.Collection'
+      io.trigger 'register', 'c2', 'backbone.Model'
+      io.trigger 'register', 'c1', 'backbone.Model'
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Hello world'
         id:
           content: 1
-      io.emit 's:model:set', 'c2', 
+      io.trigger 'model:set', 'c2', 
         m1:
           handle: 'c1'
       m1 = s.getObjectByHandleId('c1') 
@@ -148,18 +146,18 @@ describe 'ClientSync', ->
           c1.off()
           done()
 
-      io.emit 's:collection:add', 'c3', [ 'c1', 'c2' ]
+      io.trigger 'collection:add', 'c3', [ 'c1', 'c2' ]
 
   describe '#onCollectionRemove', ->
     it 'should notify when model remove from collection', (done) ->
-      io.emit 's:register', 'c3', 'backbone.Collection'
-      io.emit 's:register', 'c1', 'backbone.Model'
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'register', 'c3', 'backbone.Collection'
+      io.trigger 'register', 'c1', 'backbone.Model'
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Hello world'
         id:
           content: 1
-      io.emit 's:collection:add', 'c3', [ 'c1' ]    
+      io.trigger 'collection:add', 'c3', [ 'c1' ]    
       m1 = s.getObjectByHandleId('c1') 
       c1 = s.getObjectByHandleId('c3') 
       
@@ -168,22 +166,22 @@ describe 'ClientSync', ->
         model.should.equal m1
         done()
       
-      io.emit 's:collection:remove', 'c3', 'c1'
+      io.trigger 'collection:remove', 'c3', 'c1'
 
   describe '#onCollectionReset', ->
     it 'should notify when collection reset', (done) ->
-      io.emit 's:register', 'c3', 'backbone.Collection'
-      io.emit 's:register', 'c2', 'backbone.Model'
-      io.emit 's:register', 'c1', 'backbone.Model'
-      io.emit 's:model:set', 'c1', 
+      io.trigger 'register', 'c3', 'backbone.Collection'
+      io.trigger 'register', 'c2', 'backbone.Model'
+      io.trigger 'register', 'c1', 'backbone.Model'
+      io.trigger 'model:set', 'c1', 
         foo:
           content: 'Hello world'
         id:
           content: 1
-      io.emit 's:model:set', 'c2', 
+      io.trigger 'model:set', 'c2', 
         m1:
           handle: 'c1'
-      io.emit 's:collection:add', 'c3', [ 'c1' ]
+      io.trigger 'collection:add', 'c3', [ 'c1' ]
       m1 = s.getObjectByHandleId('c1') 
       m2 = s.getObjectByHandleId('c2') 
       c1 = s.getObjectByHandleId('c3') 
@@ -194,4 +192,4 @@ describe 'ClientSync', ->
         c1.length.should.equal 1
         c1.at(0).should.equal m2
         done()
-      io.emit 's:collection:reset', 'c3', [ 'c2'] 
+      io.trigger 'collection:reset', 'c3', [ 'c2'] 

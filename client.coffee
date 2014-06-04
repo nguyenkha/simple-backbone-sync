@@ -16,17 +16,17 @@ class Handle
       callback = args.pop()
     method = args.shift()
     # Optimize socket.io
-    @sync.socket.emit.call @sync.socket, 's:invoke', @id, method, args, callback
+    @sync.channel.trigger.call @sync.channel, 'invoke', @id, method, args, callback
 
 class Sync extends backbone.Model
-  constructor: (@socket) ->
+  constructor: (@channel) ->
     super()
     @handles = {}
-    @socket.on 's:register', @onRegister
-    @socket.on 's:model:set', @onModelSet
-    @socket.on 's:collection:add', @onCollectionAdd
-    @socket.on 's:collection:remove', @onCollectionRemove
-    @socket.on 's:collection:reset', (handleId, els) =>
+    @channel.on 'register', @onRegister
+    @channel.on 'model:set', @onModelSet
+    @channel.on 'collection:add', @onCollectionAdd
+    @channel.on 'collection:remove', @onCollectionRemove
+    @channel.on 'collection:reset', (handleId, els) =>
       @onCollectionAdd handleId, els, true
 
     # Default types

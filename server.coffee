@@ -1,5 +1,3 @@
-events = require 'events'
-EventEmitter = events.EventEmitter
 _ = require 'underscore'
 backbone = require 'backbone'
 
@@ -16,13 +14,13 @@ class Handle
     @obj.handle = this
 
 class Sync extends backbone.Model
-  constructor: (@socket) ->
+  constructor: (@channel) ->
     super()
     # Handle to all managed objects
     @handles = {}
     @acceptMethods = {}
     @typeToName = {}
-    @socket.on 's:invoke', @onInvoke
+    @channel.on 'invoke', @onInvoke
 
   # TODO: Becareful remote call harmful
   onInvoke: (handleId, method, args, callback) =>
@@ -76,7 +74,7 @@ class Sync extends backbone.Model
       else  
         links[name] = 
           content: attrHandle
-    @broadcast 's:model:set', handle.id, links
+    @broadcast 'model:set', handle.id, links
 
   linkCollection: (handle, els, isReset) ->
     links = []
@@ -84,9 +82,9 @@ class Sync extends backbone.Model
       childHandle = @register e
       links.push childHandle.id
     if isReset
-      @broadcast 's:collection:reset', handle.id, links
+      @broadcast 'collection:reset', handle.id, links
     else
-      @broadcast 's:collection:add', handle.id, links
+      @broadcast 'collection:add', handle.id, links
     
   # Add new tracking object
   # Each type should have ad-hoc factory
@@ -109,7 +107,7 @@ class Sync extends backbone.Model
     # Add handle to tracking
     @handles[handle.id] = handle
     # Broadcast
-    @broadcast 's:register', handle.id, type
+    @broadcast 'register', handle.id, type
       
     # Model
     if obj instanceof backbone.Model
@@ -130,7 +128,7 @@ class Sync extends backbone.Model
       , this
 
       obj.on 'remove', (el) ->
-        @broadcast 's:collection:remove', handle.id, el.handle.id
+        @broadcast 'collection:remove', handle.id, el.handle.id
       , this
 
       obj.on 'reset', ->
@@ -145,7 +143,7 @@ class Sync extends backbone.Model
 
   # Simply broadcast through event emitter
   broadcast: ->
-    @socket.emit.apply @socket, arguments
+    @channel.trigger.apply @channel, arguments
 
   # What happen when new node join?
   # Get state
@@ -163,6 +161,6 @@ class Sync extends backbone.Model
       obj.off null, null, this
     # Free all handle
     @handles = null
-    @socket.on 's:invoke', @onInvoke
+    @channel.on 'invoke', @onInvoke
 
 exports.Sync = Sync
