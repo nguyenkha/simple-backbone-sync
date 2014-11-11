@@ -202,3 +202,5 @@ class Sync extends backbone.Model
 
 exports.Sync = Sync
 exports.Handle = Handle
+exports.CollectionHandle = CollectionHandle
+exports.ModelHandle = ModelHandle
