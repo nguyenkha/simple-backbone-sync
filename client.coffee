@@ -1,5 +1,3 @@
-events = require 'events'
-EventEmitter = events.EventEmitter
 _ = require 'underscore'
 backbone = require 'backbone'
 
@@ -44,7 +42,6 @@ class ModelHandle extends Handle
         @obj.set key, child
       if value.content
         @obj.set key, value.content 
-
 
 class CollectionHandle extends Handle
   @className: 'backbone.Collection'
