@@ -83,6 +83,7 @@ class Sync extends backbone.Model
     super()
     @handles = {}
     @channel.on 'register', @onRegister
+    @channel.on 'free', @onFree
     
     # Default types
     @types = {}
@@ -110,6 +111,9 @@ class Sync extends backbone.Model
 
     handle = new HandleType handleId, this, obj
     @handles[handleId] = handle
+
+  onFree: =>
+    @trigger 'free'
 
   loadState: (state) ->
     # Register object

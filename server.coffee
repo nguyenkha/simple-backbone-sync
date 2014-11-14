@@ -199,6 +199,9 @@ class Sync extends backbone.Model
     # Free all handle
     @handles = null
     @channel.off 'invoke', @onInvoke
+    # Free event
+    @trigger 'free'
+    @broadcast 'free'
 
 exports.Sync = Sync
 exports.Handle = Handle
