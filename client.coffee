@@ -79,8 +79,10 @@ loadModule = (_, backbone) ->
 
   class Sync extends backbone.Model
     # Makesure load state before event? Race condition???
-    constructor: (@channel) ->
-      super()
+    constructor: (options) ->
+      super options
+
+    init: (@channel) ->
       @handles = {}
       @channel.on 'register', @onRegister
       @channel.on 'free', @onFree
