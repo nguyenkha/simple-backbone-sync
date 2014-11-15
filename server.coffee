@@ -26,7 +26,6 @@ class Handle
     # Off all events
     @obj.off null, null, this
 
-
 class ModelHandle extends Handle
   @clazz: backbone.Model
   
@@ -106,6 +105,9 @@ class Sync extends backbone.Model
     @types = []
     @channel.on 'invoke', @onInvoke
 
+  # Default true
+  canInvoke: (handle, type, method, args) -> true
+
   # TODO: Becareful remote call harmful
   onInvoke: (handleId, method, args, callback) =>
     handle = @handles[handleId]
@@ -115,7 +117,7 @@ class Sync extends backbone.Model
       obj = handle.obj
       type = @getType obj
       # Accept only async methods
-      if type and type.methods and type.methods.indexOf(method) != -1
+      if type and type.methods and type.methods.indexOf(method) != -1 and @canInvoke(handle, type, method, args)
         try 
           args.push callback
           # Async
