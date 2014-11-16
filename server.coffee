@@ -1,5 +1,6 @@
 _ = require 'underscore'
 backbone = require 'backbone'
+uuid = require 'node-uuid'
 
 # A sync use mainly by debugger
 # Maybe extend for other collaborative activity
@@ -164,7 +165,9 @@ class Sync extends backbone.Model
     # From here: only managed register type
     # Create new handle
     # TODO: Becareful overflow id
-    handle = new type _.uniqueId('sync'), this, obj
+    # id = _.uniqueId('sync')
+    id = uuid.v4()
+    handle = new type id, this, obj
     # Add handle to tracking
     @handles[handle.id] = handle
     # Broadcast
