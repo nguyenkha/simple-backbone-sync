@@ -126,7 +126,6 @@ class Sync extends backbone.Model
         catch e
           # Callback on exception
           callback e.toString()
-          throw e
 
       else
         # Not throw real error
