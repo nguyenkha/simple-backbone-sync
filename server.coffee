@@ -126,12 +126,16 @@ class Sync extends backbone.Model
         catch e
           # Callback on exception
           callback e.toString()
+          throw e
 
       else
         # Not throw real error
         callback 'Method not found'
 
   getType: (obj) -> 
+    # If not null
+    if not obj
+      return obj
     type = _.find @types, (el) -> 
       el.clazz is obj.constructor
     # Fallback backbone base
