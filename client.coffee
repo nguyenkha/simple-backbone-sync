@@ -40,7 +40,7 @@ loadModule = (_, backbone) ->
         if value.handle
           child = @sync.getObjectByHandleId value.handle
           @obj.set key, child
-        if value.content
+        else if _.has(value, 'content')
           @obj.set key, value.content 
 
   class CollectionHandle extends Handle
