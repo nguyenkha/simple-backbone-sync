@@ -125,6 +125,8 @@ class Sync extends backbone.Model
           obj[method].apply obj, args
         catch e
           # Callback on exception
+          # console.log e, method, obj
+          console.log e.stack
           callback e.toString()
 
       else
