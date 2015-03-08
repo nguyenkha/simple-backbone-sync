@@ -103,8 +103,8 @@ loadModule = (_, backbone) ->
       return @handles[handleId].obj
 
     onRegister: (handleId, type) =>
-      if @handles[handleId]
-        throw Error('Already registered')
+      # if @handles[handleId]
+      #   throw Error('Already registered')
 
       HandleType = @getType type
       if not HandleType
