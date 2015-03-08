@@ -112,6 +112,10 @@ class Sync extends backbone.Model
   # TODO: Becareful remote call harmful
   onInvoke: (handleId, method, args, callback) =>
     handle = @handles[handleId]
+    if not callback
+      console.log 'Callback must be pass'
+      # Do nothing
+      return
     if not handle
       callback 'Object not found'
     else
