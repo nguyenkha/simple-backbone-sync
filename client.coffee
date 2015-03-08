@@ -108,7 +108,7 @@ loadModule = (_, backbone) ->
 
       HandleType = @getType type
       if not HandleType
-        throw Error('Type ' + type + 'was not registered')
+        throw Error('Type ' + type + ' was not registered')
       obj = new HandleType.clazz()
 
       handle = new HandleType handleId, this, obj
